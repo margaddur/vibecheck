@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Vibe Check Game</title>
+  <script defer src="https://cdn.jsdelivr.net/npm/face-api.js"></script>
+  <style>
+    body { font-family: sans-serif; text-align: center; background: #f0f0f0; padding: 2rem; }
+    video { border-radius: 10px; margin-top: 1rem; }
+    #result { font-size: 2rem; margin-top: 1rem; }
+    #startBtn { padding: 1rem 2rem; font-size: 1.2rem; cursor: pointer; }
+  </style>
+</head>
+<body>
+  <h1>🌀 Vibe Check 🌀</h1>
+  <button id="startBtn">Start Vibe Check</button>
+  <div><video id="video" width="480" height="360" autoplay muted></video></div>
+  <div id="result"></div>
+
+  <script>
+    const video = document.getElementById('video');
+    const result = document.getElementById('result');
+    const startBtn = document.getElementById('startBtn');
+  
+    async function setupCamera() {
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({ video: {} });
+        video.srcObject = stream;
+      } catch (err) {
+        result.textContent = '⚠️ Could not access webcam.';
+        console.error(err);
+      }
+    }
+  
+    async function loadModels() {
+      result.textContent = '🔄 Loading vibe detection tech...';
+      await faceapi.nets.tinyFaceDetector.loadFromUri('models');
+      await faceapi.nets.faceExpressionNet.loadFromUri('models');
+      result.textContent = '✅ Models loaded. Get ready to vibe!';
+    }
+  
+    async function checkVibe() {
+      result.textContent = '🧠 Analyzing...';
+      const detection = await faceapi
+        .detectSingleFace(video, new faceapi.TinyFaceDetectorOptions())
+        .withFaceExpressions();
+  
+      if (!detection) {
+        result.textContent = '😕 No face detected! Try again.';
+        return;
+      }
+  
+      const expressions = detection.expressions;
+      const maxExpression = Object.entries(expressions).sort((a, b) => b[1] - a[1])[0];
+  
+      if (maxExpression[1] > 0.9) {
+        result.textContent = `✅ You passed the vibe check with: ${maxExpression[0].toUpperCase()}!`;
+      } else {
+        result.textContent = `❌ Vibe not strong enough. Try harder! (Top: ${maxExpression[0]})`;
+      }
+    }
+  
+    startBtn.onclick = async () => {
+      startBtn.disabled = true;
+      await loadModels();
+      await setupCamera();
+  
+      let countdown = 3;
+      result.textContent = `😮 Get ready... ${countdown}`;
+      const countdownInterval = setInterval(() => {
+        countdown--;
+        if (countdown > 0) {
+          result.textContent = `😮 Get ready... ${countdown}`;
+        } else {
+          clearInterval(countdownInterval);
+          result.textContent = '⚡ VIBE NOW!';
+          setTimeout(checkVibe, 1000); // Give them a second to strike the pose
+        }
+      }, 1000);
+    };
+  </script>
+  
+</body>
+</html>
